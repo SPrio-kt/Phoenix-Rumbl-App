@@ -2,7 +2,7 @@
 
 ## 1. Creating the Project
 
-```
+```Elixir
 $ mix phx.new rumbl
 $ cd rumbl
 $ mix ecto.create
@@ -261,4 +261,66 @@ def show(conn, %{"id" => id}) do
   user = Accounts.get_user(id)
   render(conn, "show.html", user: user)
 end
+```
+Add this to lib/rumbl_web/templates/user/show.html.eex :
+```Elixir
+<h1>Showing User</h1>
+<b><%= first_name(@user) %></b> (<%= @user.id %>)
+```
+## 8. Naming Conventions
+When Phoenix renders templates from a controller, it infers the name of the
+view module, RumblWeb.UserView , from the name of the controller module, Rum-
+blWeb.UserController . The view modules infer their template locations from the
+view module name. In our example, our RumblWeb.UserView would look for tem-
+plates in the web/templates/user/ directory.
+
+## 9. Nesting Templates
+create a user template in lib/rumbl_web/templates/user/user.html.eex :
+```Elixir
+<strong><%= first_name(@user) %></strong> (<%= @user.id %>)
+```
+Now, change your show.html.eex
+template to render it:
+```Elixir
+<h1>Showing User</h1>
+<%= render "user.html", user: @user %>
+```
+Also, change your index.html.eex template to render it:
+```Elixir
+<tr>
+<td><%= render "user.html", user: user %></td>
+<td><%= link "View", to: Routes.user_path(@conn, :show, user.id) %></td>
+</tr>
+```
+
+<b>At this point, it’s worth emphasizing that a view in Phoenix is just a module,
+and templates are just functions.</b>
+ When we add a template named lib/rumbl_web/tem-
+plates/user/user.html.eex , the view extracts the template from the filesystem and
+makes it a function in the view itself. That’s why we need the view in the first
+place. Let’s build on this thought inside iex -S mix :
+
+
+```Elixir
+iex> user = Rumbl.Accounts.get_user("1")
+%Rumbl.Accounts.User{...}
+iex> view = RumblWeb.UserView.render("user.html", user: user)
+{:safe, [[[[["" | "<strong>"] | "José"] | "</strong> ("] | "1"] | ")\n"]}
+iex> Phoenix.HTML.safe_to_string(view)
+"<strong>José</strong> (1)\n"
+```
+
+## 10. Layouts
+
+in lib/rumbl_web/templates/layout/app.html.eex :
+```Elixir
+<main role="main" class="container">
+<p class="alert alert-info" role="alert">
+<%= get_flash(@conn, :info) %>
+</p>
+<p class="alert alert-danger" role="alert">
+<%= get_flash(@conn, :error) %>
+</p>
+<%= render @view_module, @view_template, assigns %>
+</main>
 ```
