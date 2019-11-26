@@ -169,3 +169,96 @@ defmodule RumblWeb.UserController do
   end
 end
 ```
+## 5. Coding Views
+
+Let’s build a view in lib/rumbl_web/views/user_view.ex :
+
+```elixir
+defmodule RumblWeb.UserView do
+  use RumblWeb, :view
+  alias Rumbl.Accounts
+  def first_name(%Accounts.User{name: name}) do
+    name
+    |> String.split(" ")
+    |> Enum.at(0)
+  end
+end
+```
+Next, in lib/rumbl_web/templates , we created a user directory and
+a new index template in lib/rumbl_web/templates/user/index.html.eex :
+```elixir
+<h1>Listing Users</h1>
+<table>
+  <%= for user <- @users do %>
+    <tr>
+      <td><b><%= first_name(user) %></b> (<%= user.id %>)</td>
+      <td><%= link "View", to: Routes.user_path(@conn, :show, user.id) %></td>
+    </tr>
+  <% end %>
+</table>
+```
+
+## 6. Using Helpers
+
+That link function packs a surprising amount of punch into a small package.
+Phoenix helpers provide a convenient way to drop common HTML structures
+onto your view.
+
+```Elixir
+$ iex -S mix
+iex> Phoenix.HTML.Link.link("Home", to: "/")
+{:safe, [60, "a", [[32, "href", 61, 34, "/", 34]],
+62, "Home", 60,
+47, "a", 62]}
+```
+Let’s convert this result into a human-
+readable form by calling Phoenix.HTML.safe_to_string/1 :
+
+```Elixir
+iex> Phoenix.HTML.Link.link("Home", to: "/") |> Phoenix.HTML.safe_to_string()
+"<a href=\"/\">Home</a>"
+```
+We use a path that’s automatically created for our
+:show route to specify the link target. Now you can see that our list has the
+three users we fetched from our repository as shown in the figure
+
+![alt text]( assets/images/img-2.png "users index page")
+
+Open up lib/rumbl_web.ex to see exactly what’s imported into each view:
+
+```Elixir
+def view do
+  quote do
+    use Phoenix.View, root: "lib/rumbl_web/templates",
+    namespace: RumblWeb
+    # Import convenience functions from controllers
+    import Phoenix.Controller,
+    only: [get_flash: 1, get_flash: 2, view_module: 1]
+    # Use all HTML functionality (forms, tags, etc)
+    use Phoenix.HTML
+    import RumblWeb.ErrorHelpers
+    import RumblWeb.Gettext
+    alias RumblWeb.Router.Helpers, as: Routes
+  end
+end
+```
+
+the contents of the view function will be macro-expanded to each and every
+view! So remember, in rumbl_web.ex , prefer import statements to defining your
+own functions.
+
+## 7. Showing a User
+
+let’s look at the route we created earlier:
+```Elixir
+get "/users/:id", UserController, :show
+```
+To show a single user
+using this request, we need a controller action, which we add to lib/rumbl_web/con-
+trollers/user_controller.ex :
+```Elixir
+def show(conn, %{"id" => id}) do
+  user = Accounts.get_user(id)
+  render(conn, "show.html", user: user)
+end
+```
